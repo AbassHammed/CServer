@@ -23,11 +23,11 @@ int accept_connection(int server_fd)
 {
     struct sockaddr_in client_addr;
     socklen_t client_addr_len = sizeof(client_addr);
-    int client_fd = accept(server_fd, (struct sockeaddr *)&client_addr, &client_addr_len);
+    int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
 
     if (client_fd < 0)
     {
-        perror('Accept failed');
+        perror("Accept failed");
         return -1;
     }
 
@@ -76,28 +76,50 @@ int create_server_socket()
     return server_fd;
 }
 
-void handle_client_request(int server_fd)
+void handle_client_request(int client_fd)
 {
-    struct sockaddr_in client_addr;
-    socklen_t client_addr_len = sizeof(client_addr);
-    int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
-
-    if (client_fd < 0)
-    {
-        perror("Accept failed");
-        return;
-    }
-
     char buffer[BUFFER_SIZE] = {0};
     read(client_fd, buffer, BUFFER_SIZE);
 
-    // Basic response
-    const char *response =
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/html\r\n"
-        "\r\n"
-        "<html><body><h1>Hello, World!</h1></body></html>";
+    char method[5], path[BUFFER_SIZE];
+    sscanf(buffer, "%s %s", method, path);
 
-    send(client_fd, response, strlen(response), 0);
-    close(client_fd);
+    if (strcmp(method, "GET") != 0)
+    {
+        send_res(client_fd, "405 Method Not Allowed", "text/plain", "Method Not Allowed");
+        return;
+    }
+
+    char *file_path = path + 1;
+
+    if (strlen(file_path) == 0)
+    {
+        file_path = "index.html";
+    }
+
+    if (fileExists(file_path))
+    {
+        FILE *file = fopen(file_path, "r");
+        if (file == NULL)
+        {
+            send_res(client_fd, "500 Internal Server Error", "text/plain", "Internal Server Error");
+            return;
+        }
+
+        char *line = NULL;
+        size_t len = 0;
+        char body[BUFFER_SIZE] = {0};
+
+        while (getline(&line, &len, file) != -1)
+        {
+            strcat(body, line);
+        }
+
+        send_res(client_fd, "200 OK", "text/html", body);
+        fclose(file);
+    }
+    else
+    {
+        send_res(client_fd, "404 Not Found", "text/plain", "Not Found");
+    }
 }

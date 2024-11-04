@@ -6,5 +6,6 @@
 
 int create_server_socket();
 void handle_client_request(int server_fd);
+int accept_connection(int server_fd);
 
 #endif
