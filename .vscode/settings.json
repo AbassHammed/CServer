@@ -1,0 +1,11 @@
+{
+  "files.associations": {
+    "*.embeddedhtml": "html",
+    "in.h": "c",
+    "unistd.h": "c",
+    "types.h": "c",
+    "stat.h": "c",
+    "socket.h": "c",
+    "string.h": "c"
+  }
+}
