@@ -15,6 +15,7 @@
 
 int server_fd;
 
+// Gestionnaire pour le signal SIGINT (Ctrl+C)
 void handle_sigint()
 {
     printf("\nArrêt du serveur...\n");
@@ -22,29 +23,32 @@ void handle_sigint()
     exit(0);
 }
 
+// Gestion de la requête client
 void handle_client_request(int client_fd)
 {
     char buffer[BUFFER_SIZE] = {0};
     read(client_fd, buffer, sizeof(buffer));
 
+    // Analyse de la requête HTTP
     Request req = parse_http_request(buffer);
     print_request(&req);
 
     HttpRequest request;
     if (!parse_request(buffer, &request))
     {
+        // Réponse en cas de requête incorrecte
         send_response(client_fd, "400 Bad Request", "text/plain", "400 Requête Incorrecte");
         return;
     }
 
-    // Handle CGI scripts
+    // Gestion des scripts CGI
     if (strncmp(request.path, "/cgi-bin/", 9) == 0)
     {
         handle_cgi_request(client_fd, request.path + 1);
         return;
     }
 
-    // Serve static files
+    // Servir les fichiers statiques
     char file_path[BUFFER_SIZE];
     snprintf(file_path, sizeof(file_path), "%s%s", DOCUMENT_ROOT, request.path);
 
@@ -53,16 +57,19 @@ void handle_client_request(int client_fd)
         char *content = read_file_content(file_path);
         if (!content)
         {
+            // Réponse en cas d'erreur interne du serveur
             send_response(client_fd, "500 Internal Server Error", "text/plain", get_error_message(ERROR_500));
         }
         else
         {
+            // Réponse avec le contenu du fichier
             send_response(client_fd, "200 OK", "text/html", content);
             free(content);
         }
     }
     else
     {
+        // Réponse en cas de fichier non trouvé
         send_response(client_fd, "404 Not Found", "text/plain", get_error_message(ERROR_404));
     }
 }

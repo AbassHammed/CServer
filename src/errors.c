@@ -1,5 +1,6 @@
 #include "errors.h"
 
+// the code explains itself
 const char *get_error_message(int error_code)
 {
     switch (error_code)
