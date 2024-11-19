@@ -13,7 +13,7 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    printf("Server is listening on port %d\n", PORT);
+    printf("Server is listening on http://localhost:%d\n", PORT);
 
     while (1)
     {

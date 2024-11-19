@@ -46,6 +46,50 @@ void send_res(int client_fd, const char *status, const char *content_type, const
     send(client_fd, res, strlen(res), 0);
 }
 
+void handle_cgi_request(int client_fd, const char *script_path)
+{
+    int pipefd[2];
+    if (pipe(pipefd) == -1)
+    {
+        send_res(client_fd, "500 Internal Server Error", "text/plain", "Internal Server Error");
+        return;
+    }
+
+    pid_t pid = fork();
+    if (pid < 0)
+    {
+        send_res(client_fd, "500 Internal Server Error", "text/plain", "Fork failed");
+        return;
+    }
+
+    if (pid == 0)
+    {
+        close(pipefd[0]);
+
+        setenv("REQUEST_METHOD", "GET", 1);
+        setenv("SCRIPT_NAME", script_path, 1);
+        setenv("QUERY_STRING", "", 1);
+        setenv("SERVER_PROTOCOL", "HTTP/1.1", 1);
+
+        dup2(pipefd[1], STDOUT_FILENO);
+        close(pipefd[1]);
+
+        execl(script_path, script_path, NULL);
+        perror("execl failed");
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        close(pipefd[1]);
+
+        char buffer[BUFFER_SIZE] = {0};
+        read(pipefd[0], buffer, BUFFER_SIZE);
+        close(pipefd[0]);
+
+        send_res(client_fd, "200 OK", "text/html", buffer);
+    }
+}
+
 int create_server_socket()
 {
     int server_fd;
@@ -87,6 +131,13 @@ void handle_client_request(int client_fd)
     if (strcmp(method, "GET") != 0)
     {
         send_res(client_fd, "405 Method Not Allowed", "text/plain", "Method Not Allowed");
+        return;
+    }
+
+    if (strncmp(path, "/cgi-bin/", 9) == 0)
+    {
+        printf("Something here is wierd %s\n", path);
+        handle_cgi_request(client_fd, path + 1);
         return;
     }
 
