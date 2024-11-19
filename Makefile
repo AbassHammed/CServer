@@ -1,22 +1,34 @@
 CC = gcc
-CFLAGS = -Wall -Werror
-SRC = src/socket.c 
-OBJ = $(SRC:src/%.c=bin/%.o)
-BIN_DIR = bin
+CFLAGS = -Wall -Wextra -g -Iincludes
+SRC_DIR = src
+OBJ_DIR = obj
+INCLUDE_DIR = includes
+BIN = server
 
-all: $(BIN_DIR) server
+SRCS = main.c \
+       $(SRC_DIR)/server.c \
+       $(SRC_DIR)/request.c \
+       $(SRC_DIR)/response.c \
+       $(SRC_DIR)/cgi.c \
+       $(SRC_DIR)/files.c \
+       $(SRC_DIR)/errors.c
 
-$(BIN_DIR):
-	mkdir -p $(BIN_DIR)
+OBJS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(notdir $(SRCS)))
 
-server: $(BIN_DIR)/main.o $(OBJ)
-	$(CC) $(CFLAGS) -o server $(BIN_DIR)/main.o $(OBJ)
+all: $(BIN)
 
-$(BIN_DIR)/main.o: main.c | $(BIN_DIR)
-	$(CC) $(CFLAGS) -c main.c -o $(BIN_DIR)/main.o
+$(BIN): $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^
 
-bin/%.o: src/%.c | $(BIN_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(INCLUDE_DIR)/%.h
+	@mkdir -p $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/main.o: main.c
+	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(BIN_DIR) server
+	rm -rf $(OBJ_DIR) $(BIN)
+
+.PHONY: all clean

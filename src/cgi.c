@@ -9,6 +9,7 @@
 
 bool is_cgi_authorized(const char *script_path)
 {
+    printf("%s\n", script_path);
     FILE *allowlist = fopen("cgi_allowed.conf", "r");
     if (!allowlist)
     {
@@ -18,7 +19,7 @@ bool is_cgi_authorized(const char *script_path)
     char line[256];
     while (fgets(line, sizeof(line), allowlist))
     {
-        line[strcspn(line, "\n")] = '\0'; // Remove newline
+        line[strcspn(line, "\n")] = '\0';
         if (strcmp(line, script_path) == 0)
         {
             fclose(allowlist);
@@ -58,7 +59,7 @@ void handle_cgi_request(int client_fd, const char *script_path)
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
 
-        execl(script_path, script_path, NULL);
+        execl("/usr/bin/python3", "python3", script_path, (char *)NULL);
         perror("execl failed");
         exit(EXIT_FAILURE);
     }
