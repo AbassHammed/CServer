@@ -6,6 +6,8 @@
     "types.h": "c",
     "stat.h": "c",
     "socket.h": "c",
-    "string.h": "c"
+    "string.h": "c",
+    "server.h": "c",
+    "response.h": "c"
   }
 }

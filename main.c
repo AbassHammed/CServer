@@ -1,19 +1,86 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "src/socket.h"
-#include <sys/types.h>
+#include <signal.h>
+#include "includes/server.h"
+#include "includes/request.h"
+#include "includes/response.h"
+#include "includes/cgi.h"
+#include "includes/files.h"
+#include "includes/errors.h"
+
+#define DEFAULT_PORT 8080
+#define DOCUMENT_ROOT "."
+
+int server_fd;
+
+void handle_sigint(int sig)
+{
+    printf("\nStopping server...\n");
+    close(server_fd);
+    exit(0);
+}
+
+void handle_client_request(int client_fd)
+{
+    char buffer[BUFFER_SIZE] = {0};
+    read(client_fd, buffer, sizeof(buffer));
+
+    HttpRequest request;
+    if (!parse_request(buffer, &request))
+    {
+        send_response(client_fd, "400 Bad Request", "text/plain", "400 Requête Incorrecte");
+        return;
+    }
+
+    // Handle CGI scripts
+    if (strncmp(request.path, "/cgi-bin/", 9) == 0)
+    {
+        handle_cgi_request(client_fd, request.path + 1); // Remove leading '/'
+        return;
+    }
+
+    // Serve static files
+    char file_path[256];
+    snprintf(file_path, sizeof(file_path), "%s%s", DOCUMENT_ROOT, request.path);
+
+    if (file_exists(file_path))
+    {
+        char *content = read_file_content(file_path);
+        if (!content)
+        {
+            send_response(client_fd, "500 Internal Server Error", "text/plain", get_error_message(ERROR_500));
+        }
+        else
+        {
+            send_response(client_fd, "200 OK", "text/html", content);
+            free(content);
+        }
+    }
+    else
+    {
+        send_response(client_fd, "404 Not Found", "text/plain", get_error_message(ERROR_404));
+    }
+}
 
 int main()
 {
-    int server_fd = create_server_socket();
+    // Handle Ctrl+C gracefully
+    signal(SIGINT, handle_sigint);
+
+    // Load configuration
+    int port = DEFAULT_PORT;
+    printf("Starting server on port %d...\n", port);
+
+    // Create server socket
+    server_fd = create_server_socket(port);
     if (server_fd < 0)
     {
         fprintf(stderr, "Failed to create server socket\n");
         exit(EXIT_FAILURE);
     }
 
-    printf("Server is listening on http://localhost:%d\n", PORT);
+    printf("Server is listening on http://localhost:%d\n", port);
 
     while (1)
     {
@@ -27,6 +94,7 @@ int main()
         pid_t pid = fork();
         if (pid == 0)
         {
+            // Child process handles the request
             close(server_fd);
             handle_client_request(client_fd);
             close(client_fd);
@@ -34,10 +102,12 @@ int main()
         }
         else if (pid > 0)
         {
+            // Parent process closes the client socket
             close(client_fd);
         }
         else
         {
+            // Fork failed
             fprintf(stderr, "Failed to fork\n");
             close(client_fd);
         }
