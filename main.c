@@ -17,7 +17,7 @@ int server_fd;
 
 void handle_sigint()
 {
-    printf("\nStopping server...\n");
+    printf("\nArrêt du serveur...\n");
     close(server_fd);
     exit(0);
 }
@@ -26,6 +26,9 @@ void handle_client_request(int client_fd)
 {
     char buffer[BUFFER_SIZE] = {0};
     read(client_fd, buffer, sizeof(buffer));
+
+    Request req = parse_http_request(buffer);
+    print_request(&req);
 
     HttpRequest request;
     if (!parse_request(buffer, &request))
@@ -75,7 +78,7 @@ int main()
     server_fd = create_server_socket(DEFAULT_PORT);
     if (server_fd < 0)
     {
-        fprintf(stderr, "Failed to create server socket\n");
+        fprintf(stderr, "Échec de la création du socket serveur\n");
         exit(EXIT_FAILURE);
     }
 

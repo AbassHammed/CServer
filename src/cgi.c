@@ -9,7 +9,6 @@
 
 bool is_cgi_authorized(const char *script_path)
 {
-    printf("%s\n", script_path);
     FILE *allowlist = fopen("cgi_allowed.conf", "r");
     if (!allowlist)
     {
