@@ -8,6 +8,7 @@
     "socket.h": "c",
     "string.h": "c",
     "server.h": "c",
-    "response.h": "c"
+    "response.h": "c",
+    "stdlib.h": "c"
   }
 }
