@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
+#include <sys/types.h>
 #include "includes/server.h"
 #include "includes/request.h"
 #include "includes/response.h"
@@ -33,8 +34,7 @@ void handle_client_request(int client_fd)
     Request req = parse_http_request(buffer);
     print_request(&req);
 
-    HttpRequest request;
-    if (!parse_request(buffer, &request))
+    if (!check_request(req))
     {
         // Réponse en cas de requête incorrecte
         send_response(client_fd, "400 Bad Request", "text/plain", "400 Requête Incorrecte");
@@ -42,15 +42,15 @@ void handle_client_request(int client_fd)
     }
 
     // Gestion des scripts CGI
-    if (strncmp(request.path, "/cgi-bin/", 9) == 0)
+    if (strncmp(req.path, "/cgi-bin/", 9) == 0)
     {
-        handle_cgi_request(client_fd, request.path + 1);
+        handle_cgi_request(client_fd, req.path + 1);
         return;
     }
 
     // Servir les fichiers statiques
     char file_path[BUFFER_SIZE];
-    snprintf(file_path, sizeof(file_path), "%s%s", DOCUMENT_ROOT, request.path);
+    snprintf(file_path, sizeof(file_path), "%s%s", DOCUMENT_ROOT, req.path);
 
     if (file_exists(file_path))
     {

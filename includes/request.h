@@ -5,23 +5,17 @@
 
 #define BUFFER_SIZE 4096
 
+// Définition de la structure Request
 typedef struct
 {
-    char method[16];
-    char path[256];
-    char protocol[16];
-} HttpRequest;
-
-typedef struct
-{
-    char method[8];
-    char path[256];
-    char host[256];
-    char user_agent[512];
-    char accept[256];
+    char method[8];       // Méthode HTTP (GET, POST, etc.)
+    char path[256];       // Chemin de la ressource demandée
+    char host[256];       // Hôte de la requête
+    char user_agent[512]; // (navigateur, client HTTP, etc.)
+    char accept[256];     // Types de contenu acceptés par le client
 } Request;
 
-bool parse_request(const char *request_buffer, HttpRequest *request);
+bool check_request(Request request);
 Request parse_http_request(const char *request);
 void print_request(const Request *req);
 
